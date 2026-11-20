@@ -1,31 +1,165 @@
-<!DOCTYPE html>
-<!-- A placeholder from the Home Sales template. Replace this file with your site's first page. -->
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Under construction</title>
-  <!-- An empty icon, so the browser doesn't log an error looking for favicon.ico -->
+  <title>Home sale prices in college towns</title>
   <link rel="icon" href="data:,">
   <style>
-    :root { color-scheme: light dark; }
+    :root {
+      color-scheme: light;
+      --ink: #182a35;
+      --muted: #5d6b70;
+      --line: #d9e1de;
+      --accent: #087e70;
+      --surface: #f5f8f6;
+    }
+    * { box-sizing: border-box; }
     body {
-      max-width: 40rem;
-      margin: 0 auto;
-      padding: 3rem 1rem;
-      font-family: system-ui, sans-serif;
+      margin: 0;
+      background: var(--surface);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       line-height: 1.5;
     }
-    footer { margin-top: 3rem; font-size: 0.875rem; opacity: 0.75; }
+    main { width: min(100% - 2rem, 70rem); margin: 0 auto; padding: 3rem 0 4rem; }
+    .eyebrow { color: var(--accent); font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { max-width: 48rem; margin: .4rem 0 .7rem; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.08; }
+    .intro { max-width: 48rem; margin: 0; color: var(--muted); font-size: 1.1rem; }
+    section { margin-top: 2.5rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--line); border-radius: 1rem; background: white; }
+    h2 { margin: 0; font-size: 1.35rem; }
+    .section-note { margin: .35rem 0 1.5rem; color: var(--muted); font-size: .92rem; }
+    #chart { display: grid; gap: .75rem; }
+    .bar-row { display: grid; grid-template-columns: minmax(8.5rem, 12rem) minmax(4rem, 1fr) minmax(6.5rem, 8rem); gap: .8rem; align-items: center; }
+    .bar-label { overflow-wrap: anywhere; font-size: .9rem; }
+    .bar-track { height: .85rem; overflow: hidden; border-radius: 99px; background: #e8efec; }
+    .bar { height: 100%; border-radius: inherit; background: var(--accent); }
+    .bar-value { text-align: right; font-variant-numeric: tabular-nums; font-weight: 650; white-space: nowrap; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    th, td { padding: .75rem .65rem; border-bottom: 1px solid var(--line); text-align: left; }
+    th { color: var(--muted); font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; }
+    td:last-child, th:last-child { text-align: right; white-space: nowrap; }
+    footer { margin-top: 1.5rem; color: var(--muted); font-size: .85rem; }
+    #status { color: var(--muted); }
+    @media (max-width: 600px) {
+      main { padding-top: 2rem; }
+      .bar-row { grid-template-columns: minmax(7.5rem, 1fr) minmax(2.5rem, 1fr) minmax(6.5rem, auto); gap: .5rem; }
+      .bar-label, .bar-value { font-size: .8rem; }
+      th, td { padding: .65rem .4rem; }
+    }
   </style>
 </head>
 <body>
   <main>
-    <h1>This site is under construction</h1>
-    <p>It will show findings from the College-town home sales dataset.</p>
+    <header>
+      <div class="eyebrow">College-town home sales</div>
+      <h1>What homes sell for in college towns</h1>
+      <p class="intro">Compare the median sale price across the cities and towns in the dataset. Each place is shown in both the chart and the table.</p>
+    </header>
+
+    <section aria-labelledby="chart-heading">
+      <h2 id="chart-heading">Median sale price by city</h2>
+      <p class="section-note">Sales under $1,000 are excluded. Values are rounded to the nearest whole dollar.</p>
+      <div id="chart" role="list" aria-label="Median sale prices by city"></div>
+      <p id="status" role="status">Loading sale data…</p>
+    </section>
+
+    <section aria-labelledby="table-heading">
+      <h2 id="table-heading">All city medians</h2>
+      <p class="section-note">Cities are ordered from highest to lowest median sale price.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">City</th><th scope="col">State</th><th scope="col">Median sale price</th></tr></thead>
+          <tbody id="results"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>Source: College-town home sales dataset, version 1.0 (2026). Data collected March 2026. A city median is the midpoint of its sale prices after excluding sales below $1,000.</footer>
   </main>
-  <footer>
-    <p>Data: College-town home sales dataset, version 1.0 (2026). University of Illinois-Deloitte Foundation Center for Business Emerging Technologies. Data collected March 2026.</p>
-  </footer>
+  <script>
+    const money = new Intl.NumberFormat("en-US", {
+      style: "currency", currency: "USD", maximumFractionDigits: 0
+    });
+
+    function parseCsvLine(line) {
+      const fields = [];
+      let field = "";
+      let quoted = false;
+      for (let i = 0; i < line.length; i += 1) {
+        const char = line[i];
+        if (char === '"') {
+          if (quoted && line[i + 1] === '"') { field += '"'; i += 1; }
+          else quoted = !quoted;
+        } else if (char === "," && !quoted) {
+          fields.push(field);
+          field = "";
+        } else field += char;
+      }
+      fields.push(field);
+      return fields;
+    }
+
+    function median(values) {
+      values.sort((a, b) => a - b);
+      const middle = Math.floor(values.length / 2);
+      return values.length % 2 ? values[middle] : (values[middle - 1] + values[middle]) / 2;
+    }
+
+    async function render() {
+      const status = document.querySelector("#status");
+      try {
+        const response = await fetch("data/college_town_home_sales.csv");
+        if (!response.ok) throw new Error("Could not load the sales data.");
+        const lines = (await response.text()).trim().split(/\r?\n/);
+        const headers = parseCsvLine(lines[0]);
+        const column = Object.fromEntries(headers.map((name, index) => [name, index]));
+        const cities = new Map();
+
+        for (const line of lines.slice(1)) {
+          const row = parseCsvLine(line);
+          const price = Number(row[column.sale_price]);
+          if (!Number.isFinite(price) || price < 1000) continue;
+          const city = row[column.city];
+          const state = row[column.state];
+          const key = `${city}, ${state}`;
+          if (!cities.has(key)) cities.set(key, { city, state, prices: [] });
+          cities.get(key).prices.push(price);
+        }
+
+        const results = [...cities.values()]
+          .map(place => ({ ...place, median: median(place.prices) }))
+          .sort((a, b) => b.median - a.median || a.city.localeCompare(b.city));
+        const maxPrice = Math.max(...results.map(place => place.median));
+        const chart = document.querySelector("#chart");
+        const table = document.querySelector("#results");
+
+        for (const place of results) {
+          const label = `${place.city}, ${place.state}`;
+          const chartRow = document.createElement("div");
+          chartRow.className = "bar-row";
+          chartRow.setAttribute("role", "listitem");
+          chartRow.innerHTML = `<span class="bar-label"></span><span class="bar-track" aria-hidden="true"><span class="bar"></span></span><span class="bar-value"></span>`;
+          chartRow.querySelector(".bar-label").textContent = label;
+          chartRow.querySelector(".bar").style.width = `${(place.median / maxPrice) * 100}%`;
+          chartRow.querySelector(".bar-value").textContent = money.format(Math.round(place.median));
+          chart.append(chartRow);
+
+          const tableRow = document.createElement("tr");
+          tableRow.innerHTML = "<td></td><td></td><td></td>";
+          tableRow.cells[0].textContent = place.city;
+          tableRow.cells[1].textContent = place.state;
+          tableRow.cells[2].textContent = money.format(Math.round(place.median));
+          table.append(tableRow);
+        }
+        status.textContent = `${results.length} cities shown.`;
+      } catch (error) {
+        status.textContent = "Sale data could not be loaded. Open this page through the published site to view the chart and table.";
+      }
+    }
+
+    render();
+  </script>
 </body>
 </html>
