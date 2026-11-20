@@ -1,6 +1,4 @@
-# [Your site's title]
-
-## Start here (delete this section before you submit)
+# What homes sell for in college towns
 
 This repository is your starting point for the Home Sales case. It already holds the dataset, its description sheet, project instructions for your AI coding agent, and outlines of the README and agent log that the case asks for.
 
@@ -28,24 +26,33 @@ Don't edit any of the five dataset files. Your site needs only the CSV file. The
 
 ## What this site is for
 
-_Replace this line with your site's question and audience, or a short description of the site._
+_This website helps students, homebuyers, and anyone interested in college-town housing compare median home sale prices across the cities in the dataset. A horizontal bar chart and table show how prices differ by location.
 
 ## Live site
 
-https://your-username.github.io/your-repo-name/
+https://2410alopez.github.io/Campustown-Home-Sales/
 
 ## Data notes
 
-_Replace this line. Say which rows you left out and why, and how each figure on the site is defined. "Five things that will bite you" in the description sheet lists the problems to cover._
+_
+Sales below $10,000 are excluded to reduce the influence of unusually low-price transactions.
+
+The median sale price is the middle sale price after qualifying sales in each city and state are sorted. If there are an even number of sales, it is the average of the two middle prices.
+
+Prices are rounded to the nearest whole dollar for display after calculating the medians. Cities are ranked from highest to lowest median sale price.
+
+The sales count shows the number of qualifying transactions included in each location. These figures describe the sales in this dataset, rather than every home in each city.
+
+The original dataset files were not modified._
 
 ## Tools we used
 
-_Replace this line with your AI coding agent or agents, and any libraries and other tools you used._
+_- ChatGPT Codex: building and revising the website.
+- GitHub: storing the project and tracking changes.
+- GitHub Pages: publishing the website.
+_
 
 ## Citation
 
 College-town home sales dataset, version 1.0 (2026). University of Illinois-Deloitte Foundation Center for Business Emerging Technologies. Data collected March 2026.
 
-## Who did what
-
-_For teams: replace this line with each member's name and what they did. If you worked alone, delete this section._
